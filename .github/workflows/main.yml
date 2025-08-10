@@ -1,0 +1,10 @@
+name: Train Model
+on: [push]
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: pip install -r requirements.txt
+      - run: python train.py  # Script que entrena y guarda el modelo
+      - run: mlflow models serve -m runs:/${{ github.sha }}/model -p 8000
