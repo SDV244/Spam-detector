@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/sebas/Documents/REPOS/mltest/mlruns/972116472514663931/1851408a06ca44bbb27d446f3bbc0c3f/artifacts
+end_time: 1754864339076
+entry_point_name: ''
+experiment_id: '972116472514663931'
+lifecycle_stage: active
+run_id: 1851408a06ca44bbb27d446f3bbc0c3f
+run_name: awesome-squid-870
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1754864308132
+status: 3
+tags: []
+user_id: sebas

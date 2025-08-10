@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/sebas/Documents/REPOS/mltest/mlruns/972116472514663931/models/m-0430b2b533de45658a76d396ca97d6d2/artifacts
+creation_timestamp: 1754864308581
+experiment_id: '972116472514663931'
+last_updated_timestamp: 1754864320395
+model_id: m-0430b2b533de45658a76d396ca97d6d2
+model_type: null
+name: model
+source_run_id: 1851408a06ca44bbb27d446f3bbc0c3f
+status: 2
+status_message: null
