@@ -1,22 +1,23 @@
-# Imagen base ligera de Python
+# Use official Python base image
 FROM python:3.10-slim
 
-# Evitar que Python genere archivos .pyc y usar stdout para logs
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Crear directorio de la app
+# Set working directory
 WORKDIR /app
 
-# Copiar e instalar dependencias
+# Install dependencies first (for caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto del código y el modelo
+# Copy source code
 COPY . .
 
-# Exponer el puerto de FastAPI
-EXPOSE 8000
+# Copy trained model from GitHub Actions artifact
+COPY models/ ./models/
 
-# Comando para iniciar Uvicorn en producción
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Set environment variables
+ENV MODEL_PATH=/app/models/spam_detector.pkl
+ENV VECTORIZER_PATH=/app/models/tfidf_vectorizer.pkl
+ENV PYTHONUNBUFFERED=1
+
+# Command to run your inference script
+CMD ["python", "inference.py"]
