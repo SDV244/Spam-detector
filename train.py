@@ -13,8 +13,7 @@ from mlflow.models.signature import infer_signature
 def main():
         # Configurar paths absolutos
 
-    data_path = base_dir / "spam.csv"
-    model_path = base_dir / "spam_model.joblib"
+
     
     # Asegurar que el CSV existe
 
