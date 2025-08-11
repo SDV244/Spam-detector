@@ -1,9 +1,8 @@
-name: Train Spam Detector
+name: Spam Classifier Training
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -18,14 +17,9 @@ jobs:
         env:
           MLFLOW_ARTIFACT_ROOT: ./mlruns
           MLFLOW_BACKEND_STORE_URI: sqlite:///mlflow.db
-        options: >-
-          --health-cmd "curl -f http://localhost:5000" 
-          --health-interval 10s 
-          --health-timeout 5s 
-          --health-retries 5
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -37,41 +31,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pandas scikit-learn mlflow joblib
 
       - name: Create directories
         run: |
           mkdir -p mlruns
           touch mlflow.db
 
-      - name: Run training script
+      - name: Verify spam.csv exists
         run: |
-          python train.py
+          if [ ! -f spam.csv ]; then
+            echo "Error: spam.csv not found!"
+            ls -la
+            exit 1
+          fi
+
+      - name: Run training
+        run: python train.py
         env:
           MLFLOW_TRACKING_URI: http://localhost:5000
 
-      - name: Verify artifacts exist
+      - name: Verify output files
         run: |
+          echo "Contents of working directory:"
           ls -la
+          echo "Contents of mlruns:"
           ls -la mlruns/
-          test -f spam_model.joblib || echo "spam_model.joblib not found!"
-          test -f training_data.csv || echo "training_data.csv not found!"
+          test -f spam_model.joblib || echo "Warning: spam_model.joblib not found"
 
-      - name: Archive and upload results
+      - name: Package artifacts
         run: |
-          # Solo empaquetar archivos que existan
           tar -czvf mlruns.tar.gz mlruns/
-          
-          FILES_TO_TAR="requirements.txt"
-          [ -f spam_model.joblib ] && FILES_TO_TAR="$FILES_TO_TAR spam_model.joblib"
-          [ -f training_data.csv ] && FILES_TO_TAR="$FILES_TO_TAR training_data.csv"
-          
-          tar -czvf model_artifacts.tar.gz $FILES_TO_TAR
+          tar -czvf model_files.tar.gz spam_model.joblib requirements.txt
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: training-results
+          name: training-artifacts
           path: |
             mlruns.tar.gz
-            model_artifacts.tar.gz
-          retention-days: 7
+            model_files.tar.gz
+          retention-days: 5
