@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from sklearn.pipeline import Pipeline
 from mlflow.models.signature import infer_signature
-
+from pathlib import path
 def main():
         # Configurar paths absolutos
     base_dir = Path(__file__).parent
