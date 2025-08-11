@@ -33,36 +33,25 @@ jobs:
           pip install -r requirements.txt
           pip install pandas scikit-learn mlflow joblib
 
-      - name: Create directories
-        run: |
-          mkdir -p mlruns
-          touch mlflow.db
-
-      - name: Verify spam.csv exists
-        run: |
-          if [ ! -f spam.csv ]; then
-            echo "Error: spam.csv not found!"
-            ls -la
-            exit 1
-          fi
-
       - name: Run training
-        run: python train.py
+        run: |
+          python train.py
+          # Verificar archivos generados
+          ls -la
         env:
           MLFLOW_TRACKING_URI: http://localhost:5000
 
-      - name: Verify output files
-        run: |
-          echo "Contents of working directory:"
-          ls -la
-          echo "Contents of mlruns:"
-          ls -la mlruns/
-          test -f spam_model.joblib || echo "Warning: spam_model.joblib not found"
-
       - name: Package artifacts
         run: |
+          # Empaquetar solo archivos que existan
           tar -czvf mlruns.tar.gz mlruns/
-          tar -czvf model_files.tar.gz spam_model.joblib requirements.txt
+          
+          FILES="requirements.txt"
+          [ -f spam_model.joblib ] && FILES="$FILES spam_model.joblib"
+          [ -f tfidf_vectorizer.joblib ] && FILES="$FILES tfidf_vectorizer.joblib"
+          [ -f training_data.csv ] && FILES="$FILES training_data.csv"
+          
+          tar -czvf model_files.tar.gz $FILES || echo "Algunos archivos no se encontraron"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
