@@ -22,15 +22,39 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas scikit-learn mlflow joblib
+          pip install -r requirements.txt
+
+      - name: Create MLflow directory
+        run: mkdir -p mlruns
 
       - name: Run training script
         run: python train.py
+        env:
+          MLFLOW_TRACKING_URI: file://${{ github.workspace }}/mlruns
 
-      - name: Upload trained model
+      - name: Archive and upload results
+        run: |
+          # Empaquetar resultados de MLflow
+          tar -czvf mlruns.tar.gz mlruns/
+          
+          # Empaquetar artefactos clave del modelo
+          tar -czvf model_artifacts.tar.gz \
+            spam_model.joblib \
+            training_data.csv \
+            requirements.txt
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: trained-model
+          name: training-results
           path: |
-            spam_model.joblib
-            mlruns
+            mlruns.tar.gz
+            model_artifacts.tar.gz
+          retention-days: 7
+
+      - name: Extract metadata
+        if: always()
+        run: |
+          echo "MODEL_VERSION=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          echo "RUN_ID=$(find mlruns -name 'meta.yaml' -exec grep 'run_id:' {} \; | head -1 | awk '{print $2}')" >> $GITHUB_ENV
+          echo "PYTHON_DEPS=$(cat requirements.txt | tr '\n' ' ')" >> $GITHUB_ENV
