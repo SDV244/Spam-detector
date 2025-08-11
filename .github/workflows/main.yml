@@ -37,23 +37,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install mlflow scikit-learn pyarrow
 
-      - name: Create MLflow directories
+      - name: Create directories
         run: |
           mkdir -p mlruns
           touch mlflow.db
-
-      - name: Wait for MLflow server
-        run: |
-          for i in {1..10}; do
-            if curl -s http://localhost:5000 >/dev/null; then
-              echo "MLflow server is up!"
-              break
-            fi
-            echo "Waiting for MLflow server..."
-            sleep 5
-          done
 
       - name: Run training script
         run: |
@@ -61,10 +49,23 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: http://localhost:5000
 
-      - name: Archive results
+      - name: Verify artifacts exist
         run: |
+          ls -la
+          ls -la mlruns/
+          test -f spam_model.joblib || echo "spam_model.joblib not found!"
+          test -f training_data.csv || echo "training_data.csv not found!"
+
+      - name: Archive and upload results
+        run: |
+          # Solo empaquetar archivos que existan
           tar -czvf mlruns.tar.gz mlruns/
-          tar -czvf model_artifacts.tar.gz spam_model.joblib
+          
+          FILES_TO_TAR="requirements.txt"
+          [ -f spam_model.joblib ] && FILES_TO_TAR="$FILES_TO_TAR spam_model.joblib"
+          [ -f training_data.csv ] && FILES_TO_TAR="$FILES_TO_TAR training_data.csv"
+          
+          tar -czvf model_artifacts.tar.gz $FILES_TO_TAR
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
