@@ -9,16 +9,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from sklearn.pipeline import Pipeline
 from mlflow.models.signature import infer_signature
-from pathlib import path
+
 def main():
         # Configurar paths absolutos
-    base_dir = Path(__file__).parent
+
     data_path = base_dir / "spam.csv"
     model_path = base_dir / "spam_model.joblib"
     
     # Asegurar que el CSV existe
-    if not data_path.exists():
-        raise FileNotFoundError(f"No se encontró {data_path}")
+
     
     # Cargar datos
     # df = pd.read_csv(data_path)
