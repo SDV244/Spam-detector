@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import joblib
 import mlflow
@@ -6,11 +7,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
-import os
+from mlflow.models.signature import infer_signature
 
 # Ensure local MLflow directory
 os.makedirs("mlruns", exist_ok=True)
-mlflow.set_tracking_uri("file:mlruns")
+mlflow.set_tracking_uri("file://" + os.path.abspath("mlruns"))
 
 # Load dataset
 df = pd.read_csv("spam.csv")  # adjust to your dataset path
@@ -36,15 +37,22 @@ print(classification_report(y_test, y_pred))
 # Save locally for Docker
 joblib.dump((vectorizer, model), "spam_model.joblib")
 
-# Log to MLflow with input example & signature
-from mlflow.models.signature import infer_signature
-import pandas as pd
+# Prepare MLflow logging
+# Signature is inferred from transformed data, not raw text
+signature = infer_signature(X_train_vec.toarray(), model.predict(X_train_vec))
 
-input_example = pd.DataFrame({"text": ["Free prize! Click now!"]})
-signature = infer_signature(X_train_vec, model.predict(X_train_vec))
+# Convert an example to the format the model expects
+example_text = ["Free prize! Click now!"]
+example_vectorized = vectorizer.transform(example_text).toarray()
+input_example = pd.DataFrame(example_vectorized)
 
 with mlflow.start_run():
     mlflow.log_param("vectorizer", "CountVectorizer")
     mlflow.log_param("model", "LogisticRegression")
     mlflow.log_metric("accuracy", model.score(X_test_vec, y_test))
-    mlflow.sklearn.log_model(model, "model", signature=signature, input_example=input_example)
+    mlflow.sklearn.log_model(
+        model, 
+        "model", 
+        signature=signature, 
+        input_example=input_example
+    )
