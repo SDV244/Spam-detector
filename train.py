@@ -11,6 +11,17 @@ from sklearn.pipeline import Pipeline
 from mlflow.models.signature import infer_signature
 
 def main():
+        # Configurar paths absolutos
+    base_dir = Path(__file__).parent
+    data_path = base_dir / "spam.csv"
+    model_path = base_dir / "spam_model.joblib"
+    
+    # Asegurar que el CSV existe
+    if not data_path.exists():
+        raise FileNotFoundError(f"No se encontró {data_path}")
+    
+    # Cargar datos
+    # df = pd.read_csv(data_path)
     # Configuración de MLflow (usando servidor local)
     mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment("Spam Detection")
@@ -40,6 +51,8 @@ def main():
 
     # Guardar modelo localmente
     joblib.dump(pipeline, "spam_model.joblib")
+    print(f"Modelo guardado en {model_path}")
+    df.to_csv(base_dir / "training_data.csv", index=False)
 
     # Preparar firma y ejemplo de entrada
     signature = infer_signature(X_train, pipeline.predict(X_train))
