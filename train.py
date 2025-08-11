@@ -1,51 +1,50 @@
 import pandas as pd
+import joblib
 import mlflow
 import mlflow.sklearn
-import joblib
-from pathlib import Path
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+import os
 
-# Enable autologging for sklearn
-mlflow.sklearn.autolog()
+# Ensure local MLflow directory
+os.makedirs("mlruns", exist_ok=True)
+mlflow.set_tracking_uri("file:mlruns")
 
 # Load dataset
-df = pd.read_csv("spam.csv", encoding="latin-1")[["v1", "v2"]].rename(columns={"v1": "label", "v2": "text"})
-df["label"] = df["label"].map({"ham": 0, "spam": 1})
+df = pd.read_csv("spam.csv")  # adjust to your dataset path
+X = df["text"]
+y = df["label"]
 
-# Train/test split
-X_train, X_test, y_train, y_test = train_test_split(df["text"], df["label"], test_size=0.2)
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Vectorize
-vectorizer = TfidfVectorizer()
+vectorizer = CountVectorizer()
 X_train_vec = vectorizer.fit_transform(X_train)
 X_test_vec = vectorizer.transform(X_test)
 
-# MLflow experiment
-mlflow.set_experiment("Spam Detection")
+# Train model
+model = LogisticRegression()
+model.fit(X_train_vec, y_train)
+
+# Evaluate
+y_pred = model.predict(X_test_vec)
+print(classification_report(y_test, y_pred))
+
+# Save locally for Docker
+joblib.dump((vectorizer, model), "spam_model.joblib")
+
+# Log to MLflow with input example & signature
+from mlflow.models.signature import infer_signature
+import pandas as pd
+
+input_example = pd.DataFrame({"text": ["Free prize! Click now!"]})
+signature = infer_signature(X_train_vec, model.predict(X_train_vec))
 
 with mlflow.start_run():
-    # Model
-    model = MultinomialNB(alpha=1.0)
-    model.fit(X_train_vec, y_train)
-
-    # Predictions
-    y_pred = model.predict(X_test_vec)
-
-    # Metrics
-    acc = accuracy_score(y_test, y_pred)
-    print("Accuracy:", acc)
-    print(classification_report(y_test, y_pred))
-
-    # Log custom metric
-    mlflow.log_metric("accuracy", acc)
-
-    # Save model locally for Docker
-    Path("models").mkdir(exist_ok=True)
-    joblib.dump(model, "models/spam_detector.pkl")
-    joblib.dump(vectorizer, "models/tfidf_vectorizer.pkl")
-
-    # Log model to MLflow
-    mlflow.sklearn.log_model(model, "model")
+    mlflow.log_param("vectorizer", "CountVectorizer")
+    mlflow.log_param("model", "LogisticRegression")
+    mlflow.log_metric("accuracy", model.score(X_test_vec, y_test))
+    mlflow.sklearn.log_model(model, "model", signature=signature, input_example=input_example)
